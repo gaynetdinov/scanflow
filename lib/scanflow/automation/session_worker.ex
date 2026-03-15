@@ -83,7 +83,8 @@ defmodule Scanflow.Automation.SessionWorker do
                 image_path: image_path,
                 ocr_text: nil,
                 tokens: 0,
-                ocr_status: :pending
+                ocr_status: :pending,
+                ocr_error: nil
               }
             ]
 
@@ -230,7 +231,9 @@ defmodule Scanflow.Automation.SessionWorker do
             updated_pages =
               Enum.map(state.pages, fn page ->
                 if page.page == page_num do
-                  %{page | ocr_status: :failed, ocr_error: error}
+                  page
+                  |> Map.put(:ocr_status, :failed)
+                  |> Map.put(:ocr_error, error)
                 else
                   page
                 end
@@ -257,7 +260,9 @@ defmodule Scanflow.Automation.SessionWorker do
         updated_pages =
           Enum.map(state.pages, fn page ->
             if page.page == page_num do
-              %{page | ocr_status: :failed, ocr_error: inspect(reason)}
+              page
+              |> Map.put(:ocr_status, :failed)
+              |> Map.put(:ocr_error, inspect(reason))
             else
               page
             end

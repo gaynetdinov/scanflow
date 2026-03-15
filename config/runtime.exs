@@ -65,13 +65,18 @@ visual_llm_reserved_tokens =
   String.to_integer(System.get_env("VISUAL_LLM_RESERVED_TOKENS") || "1500")
 
 visual_llm_endpoint = System.get_env("VISUAL_LLM_ENDPOINT")
-visual_llm_model = System.get_env("VISUAL_LLM_MODEL_NAME")
-visual_llm_token = System.get_env("VISUAL_LLM_TOKEN")
+visual_llm_model =
+  System.get_env("VISUAL_LLM_MODEL_NAME") ||
+    System.get_env("OCR_LLM_MODEL_NAME") ||
+    System.get_env("TEXT_LLM_MODEL_NAME")
+
+visual_llm_token =
+  System.get_env("VISUAL_LLM_TOKEN") ||
+    System.get_env("OCR_LLM_TOKEN") ||
+    System.get_env("TEXT_LLM_TOKEN")
 
 visual_llm_enabled =
-  Enum.all?([visual_llm_endpoint, visual_llm_model, visual_llm_token], fn value ->
-    is_binary(value) and String.trim(value) != ""
-  end)
+  is_binary(visual_llm_endpoint) and String.trim(visual_llm_endpoint) != ""
 
 if visual_llm_enabled do
   # Single VLM mode: one model handles both OCR and suggestions

@@ -1,0 +1,5 @@
+[options]
+discovery = disable
+
+[devices]
+"EPSON ET-2750 Series" = https://192.168.2.209:443/eSCL/, eSCL
