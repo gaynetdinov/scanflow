@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  scanflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: scanflow
+    restart: unless-stopped
+
+    ports:
+      - "4000:4000"
+
+    environment:
+      # Required
+      PAPERLESS_API_ENDPOINT: "http://paperless-ngx:8000"
+      PAPERLESS_API_TOKEN: "replace-with-paperless-token"
+      SECRET_KEY_BASE: "replace-with-mix-phx-gen-secret"
+
+      # Common runtime
+      PHX_HOST: "localhost"
+      PORT: "4000"
+
+      # ------------------------------
+      # AI mode A (recommended): Visual model handles OCR + suggestions
+      # Uncomment and set these 3 to enable visual mode.
+      # VISUAL_LLM_ENDPOINT: "http://your-visual-llm:8000/v1"
+      # VISUAL_LLM_MODEL_NAME: "your-visual-model"
+      # VISUAL_LLM_TOKEN: "your-visual-token"
+      # VISUAL_LLM_CONTEXT_LENGTH: "12000"
+      # VISUAL_LLM_RESERVED_TOKENS: "1500"
+
+      # AI mode B: Separate OCR and text models
+      # OCR_LLM_ENDPOINT: "http://your-ocr-llm:8000/v1"
+      # OCR_LLM_MODEL_NAME: "your-ocr-model"
+      # OCR_LLM_TOKEN: "your-ocr-token"
+      # TEXT_LLM_ENDPOINT: "http://your-text-llm:8000/v1"
+      # TEXT_LLM_MODEL_NAME: "your-text-model"
+      # TEXT_LLM_TOKEN: "your-text-token"
+
+      # Optional batch tuning
+      # BATCH_PREP_MAX_CONCURRENCY: "4"
+      # BATCH_OCR_CONSUMERS: "2"
+      # BATCH_SUGGESTION_CONSUMERS: "2"
+
+      # Optional scanner automation
+      # SCAN_DEVICE_ID: "airscan:e0:HP OfficeJet Pro"
+      # SCAN_CMD_TEMPLATE: "scanimage -d {device} --resolution 300 {mode_args} --format=png --output-file {output}"
+      # SCAN_MODE_MAP: "single:bw,double:color"
+      # SCAN_MODE_ARGS_MAP: "bw:--mode Gray,color:--mode Color"
+      # SCAN_FINALIZE_HANDLER: "1_single"
+      # SCAN_FINALIZE_HANDLER_DOUBLE: "1_double"
+      # PDF_MERGE_CMD_TEMPLATE: "img2pdf {inputs} -o {output}"
+      # AUTOMATION_SUGGESTION_TRIGGER_TOKENS: "3000"
+      # EMAIL_ATTACHMENT_MAX_BYTES: "10485760"
+      # HA_HANDLER_EMAIL_MAP: "2_single:accounting@example.com,3_single:hr@example.com"
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

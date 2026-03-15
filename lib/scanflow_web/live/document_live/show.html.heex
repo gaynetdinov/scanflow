@@ -1,0 +1,380 @@
+<div class="min-h-screen bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <%= if @loading do %>
+      <div class="flex items-center justify-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    <% else %>
+      <%= if @error do %>
+        <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+          <p class="font-medium">Error:</p>
+          <p><%= @error %></p>
+          <a href="/" class="text-blue-600 hover:underline mt-2 inline-block">← Back to documents</a>
+        </div>
+      <% end %>
+
+      <%= if @document do %>
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-4">
+              <a href="/" class="text-blue-600 hover:underline">← Back to documents</a>
+              <a
+                href={"/batch/documents/#{@document.id}/source"}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-blue-600 hover:underline"
+              >
+                Open original file
+              </a>
+              <%= if @paperless_doc_url do %>
+                <a
+                  href={@paperless_doc_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-blue-600 hover:underline"
+                >
+                  Open in Paperless
+                </a>
+              <% end %>
+            </div>
+          </div>
+          
+          <!-- Success/Error Messages -->
+          <%= if @update_success do %>
+            <div class="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
+              <p><%= @update_success %></p>
+            </div>
+          <% end %>
+          
+          <%= if @update_error do %>
+            <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+              <p class="font-medium">Update Error:</p>
+              <p><%= @update_error %></p>
+            </div>
+          <% end %>
+
+          <%= if @batch_doc do %>
+            <div class="mb-4 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-md">
+              <p class="text-sm">
+                Batch status: <strong><%= @batch_doc.status %></strong>
+                <%= if @batch_doc.status_detail do %>
+                  - <%= @batch_doc.status_detail %>
+                <% end %>
+              </p>
+            </div>
+          <% end %>
+          
+          <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-gray-200">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <h1 class="text-2xl font-bold text-gray-900 mb-2"><%= @document.title %></h1>
+                  <p class="text-sm text-gray-500">Document #<%= @document.id %></p>
+                </div>
+                <%= if @document.archive_serial_number do %>
+                  <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm">
+                    Archive: <%= @document.archive_serial_number %>
+                  </span>
+                <% end %>
+              </div>
+            </div>
+
+            <!-- Metadata -->
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <span class="text-sm font-medium text-gray-500">Created:</span>
+                  <p class="text-gray-900"><%= @document.created_date %></p>
+                </div>
+
+                <div>
+                  <span class="text-sm font-medium text-gray-500">Modified:</span>
+                  <p class="text-gray-900"><%= @document.modified %></p>
+                </div>
+
+                <%= if @document.document_type do %>
+                  <div>
+                    <span class="text-sm font-medium text-gray-500">Document Type:</span>
+                    <p class="text-gray-900"><%= @document.document_type["name"] %></p>
+                  </div>
+                <% end %>
+
+                <%= if @document.correspondent do %>
+                  <div>
+                    <span class="text-sm font-medium text-gray-500">Correspondent:</span>
+                    <p class="text-gray-900"><%= @document.correspondent["name"] %></p>
+                  </div>
+                <% end %>
+
+                <%= if @document.original_file_name do %>
+                  <div>
+                    <span class="text-sm font-medium text-gray-500">Original File:</span>
+                    <p class="text-gray-900 text-sm truncate" title={@document.original_file_name}>
+                      <%= @document.original_file_name %>
+                    </p>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+
+            <!-- Tags Section -->
+            <div class="px-6 py-4 border-b border-gray-200">
+              <h3 class="text-sm font-medium text-gray-500 mb-2">Tags:</h3>
+              <%= if @document.tags != nil and @document.tags != [] do %>
+                <div class="flex flex-wrap gap-2">
+                  <%= for tag_id <- @document.tags do %>
+                    <%
+                      tag = @tags[tag_id]
+                      tag_name = if tag, do: tag["name"], else: "##{tag_id}"
+                      tag_color = if tag, do: tag["color"], else: "#e5e7eb"
+                      tag_text_color = if tag, do: tag["text_color"], else: "#374151"
+                    %>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                          style={"background-color: #{tag_color}; color: #{tag_text_color};"}>
+                      <%= tag_name %>
+                    </span>
+                  <% end %>
+                </div>
+              <% else %>
+                <p class="text-gray-400 text-sm">No tags</p>
+              <% end %>
+            </div>
+
+            <!-- AI Suggestions Section -->
+            <%= if @ocr_text do %>
+              <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-sm font-medium text-blue-900">AI Suggestions:</h3>
+                  <%= if @llm_mode == :separate && !@ai_suggestions && !@ai_loading do %>
+                    <button
+                      phx-click="get_ai_suggestions"
+                      phx-disable-with="Analyzing..."
+                      class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 text-sm"
+                    >
+                      Get AI Suggestions
+                    </button>
+                  <% end %>
+                </div>
+
+                <%= if @ai_loading do %>
+                  <div class="flex items-center justify-center py-4">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-2"></div>
+                    <span class="text-blue-700 text-sm"><%= @processing_status || "Analyzing document..." %></span>
+                  </div>
+                <% end %>
+
+                <%= if @ai_error do %>
+                  <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+                    <p class="text-sm"><%= @ai_error %></p>
+                  </div>
+                <% end %>
+
+                <%= if @ai_suggestions do %>
+                  <div class="bg-white rounded p-4 border border-blue-200 space-y-3">
+                    <%= if @ai_suggestions.title do %>
+                      <div class="flex items-start gap-3">
+                        <input 
+                          type="checkbox" 
+                          id="apply_title" 
+                          phx-click="toggle_suggestion" 
+                          phx-value-field="title"
+                          checked={@apply_title_suggestion}
+                          class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        />
+                        <div class="flex-1">
+                          <label for="apply_title" class="text-xs font-semibold text-blue-600 uppercase cursor-pointer">Suggested Title:</label>
+                          <form phx-change="update_suggested_title">
+                            <input
+                              type="text"
+                              name="suggested_title"
+                              value={@edited_suggested_title || @ai_suggestions.title}
+                              phx-debounce="blur"
+                              class="mt-1 w-full text-sm border border-gray-300 rounded px-2 py-1 text-gray-900"
+                            />
+                          </form>
+                        </div>
+                      </div>
+                    <% end %>
+                    
+                    <%= if @editable_suggested_tags != [] do %>
+                      <div class="flex items-start gap-3">
+                        <input 
+                          type="checkbox" 
+                          id="apply_tags" 
+                          phx-click="toggle_suggestion" 
+                          phx-value-field="tags"
+                          checked={@apply_tags_suggestion}
+                          class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        />
+                        <div class="flex-1">
+                          <label for="apply_tags" class="text-xs font-semibold text-blue-600 uppercase cursor-pointer">Suggested Tags:</label>
+                          <div class="mt-2 space-y-3">
+                            <!-- Editable Tag Chips -->
+                            <div class="flex flex-wrap gap-2">
+                              <%= for tag_name <- @editable_suggested_tags do %>
+                                <span class="inline-flex items-center px-2.5 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                  <%= tag_name %>
+                                  <button
+                                    phx-click="remove_suggested_tag"
+                                    phx-value-tag_name={tag_name}
+                                    class="ml-1.5 text-blue-600 hover:text-blue-900"
+                                    title="Remove tag"
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              <% end %>
+                            </div>
+                            
+                            <!-- Add Tag Autocomplete with Alpine.js -->
+                            <div
+                              id="suggested-tags-autocomplete"
+                              phx-update="ignore"
+                              x-data={"tagAutocomplete(#{Jason.encode!(@tags_list_for_js)})"}
+                              x-init="open = false; search = ''"
+                              class="relative"
+                              @click.away="open = false"
+                            >
+                              <input
+                                type="text"
+                                x-model="search"
+                                @focus="open = true"
+                                @input="open = true"
+                                placeholder="Add existing tag..."
+                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                              
+                              <div 
+                                x-show="open && search.length > 0" 
+                                x-cloak
+                                class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto"
+                              >
+                                <template x-for="tag in filteredTags">
+                                  <button
+                                    type="button"
+                                    @click="$refs.addTagBtn.setAttribute('phx-value-tag_id', tag.id); $refs.addTagBtn.click(); search = ''; open = false"
+                                    class="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2"
+                                  >
+                                    <span class="inline-block w-3 h-3 rounded-full" x-bind:style="'background-color: ' + (tag.color || '#e5e7eb')"></span>
+                                    <span class="text-sm" x-text="tag.name"></span>
+                                  </button>
+                                </template>
+                                <div x-cloak x-show="open && search.length > 0 && filteredTags.length === 0" class="px-3 py-2 text-gray-500 text-sm">
+                                  No matching tags
+                                </div>
+                              </div>
+                              
+                              <!-- Hidden button for Phoenix event -->
+                              <button x-ref="addTagBtn" phx-click="add_suggested_tag" class="hidden"></button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    <% end %>
+
+                    <div class="flex items-start gap-3">
+                      <input 
+                        type="checkbox" 
+                        id="apply_content" 
+                        phx-click="toggle_suggestion" 
+                        phx-value-field="content"
+                        checked={@apply_content_suggestion}
+                        class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      />
+                      <div class="flex-1">
+                        <label for="apply_content" class="text-xs font-semibold text-blue-600 uppercase cursor-pointer">Use OCR as Content</label>
+                        <p class="text-xs text-gray-500">Replace document content with AI-extracted OCR text</p>
+                      </div>
+                    </div>
+                    
+                    <div class="pt-3 border-t border-blue-100">
+                      <button
+                        phx-click="apply_suggestions"
+                        phx-disable-with="Saving..."
+                        disabled={@update_loading || (!@apply_title_suggestion && !@apply_tags_suggestion && !@apply_content_suggestion)}
+                        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <%= if @update_loading, do: "Saving...", else: "Apply & Save to Paperless" %>
+                      </button>
+                      <%= if !@apply_title_suggestion && !@apply_tags_suggestion && !@apply_content_suggestion do %>
+                        <span class="text-xs text-gray-500 ml-2">Select at least one suggestion to apply</span>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <!-- Content Section -->
+            <%= if @document.content || String.ends_with?(String.downcase(@document.original_file_name || ""), ".pdf") do %>
+              <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-sm font-medium text-gray-500">Document Content:</h3>
+                  <%= if String.ends_with?(String.downcase(@document.original_file_name || ""), ".pdf") && !@ocr_text && !@ocr_loading do %>
+                    <%= if @llm_mode == :visual do %>
+                      <button
+                        phx-click="run_ocr_and_suggest"
+                        phx-disable-with="Processing..."
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 text-sm"
+                      >
+                        OCR & Suggest
+                      </button>
+                    <% else %>
+                      <button
+                        phx-click="run_ocr"
+                        phx-disable-with="Processing..."
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 text-sm"
+                      >
+                        Run OCR
+                      </button>
+                    <% end %>
+                  <% end %>
+                </div>
+
+                <%= if @ocr_loading do %>
+                  <div class="flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
+                    <span class="text-gray-600"><%= @processing_status || "Extracting text with AI..." %></span>
+                  </div>
+                <% end %>
+
+                <%= if @ocr_error do %>
+                  <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4">
+                    <p class="text-sm"><%= @ocr_error %></p>
+                  </div>
+                <% end %>
+
+                <!-- Side by side view -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <%= if @document.content do %>
+                    <div>
+                      <h4 class="text-xs font-semibold text-gray-400 uppercase mb-2">Paperless Parsed Content:</h4>
+                      <div class="bg-gray-50 rounded p-4 h-96 overflow-y-auto">
+                        <pre class="whitespace-pre-wrap text-sm text-gray-700 font-mono"><%= @document.content %></pre>
+                      </div>
+                    </div>
+                  <% end %>
+
+                  <%= if @ocr_text do %>
+                    <div>
+                      <h4 class="text-xs font-semibold text-gray-400 uppercase mb-2">OCR (AI Extracted):</h4>
+                      <form phx-change="update_ocr_text" class="h-96">
+                        <textarea
+                          name="ocr_text"
+                          phx-debounce="blur"
+                          class="bg-gray-50 rounded p-4 h-full w-full overflow-y-auto border-2 border-blue-200 text-sm text-gray-700 font-mono whitespace-pre-wrap"
+                        ><%= @edited_ocr_text || @ocr_text %></textarea>
+                      </form>
+                      <p class="text-xs text-gray-500 mt-1">Editable. Changes are saved when field loses focus and used by "Use OCR as Content".</p>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>

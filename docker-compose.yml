@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  scanflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: scanflow
+    environment:
+      - PAPERLESS_API_ENDPOINT=${PAPERLESS_API_ENDPOINT:-http://paperless-ngx:8000}
+      - PAPERLESS_API_TOKEN=${PAPERLESS_API_TOKEN}
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - PHX_HOST=${PHX_HOST:-localhost}
+      - PORT=${PORT:-4000}
+    ports:
+      - "${PORT:-4000}:4000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

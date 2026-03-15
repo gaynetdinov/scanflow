@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <.live_title suffix=" · Scanflow">
+      <%= assigns[:page_title] || "Documents" %>
+    </.live_title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/phoenix@1.7.14/priv/static/phoenix.min.js"></script>
+    <script src="https://unpkg.com/phoenix_live_view@1.0.0/priv/static/phoenix_live_view.min.js"></script>
+    <script>
+      function tagAutocomplete(allTags) {
+        return {
+          open: false,
+          search: '',
+          allTags: allTags,
+          get filteredTags() {
+            return this.allTags
+              .filter(t => (t.name || '').toLowerCase().includes(this.search.toLowerCase()))
+              .slice(0, 8);
+          }
+        };
+      }
+
+      function tagPicker(allTags, selectedTags) {
+        return {
+          open: false,
+          search: '',
+          allTags: allTags || [],
+          selectedTags: selectedTags || [],
+          get filteredTags() {
+            const query = (this.search || '').toLowerCase();
+            return this.allTags
+              .filter(t => !this.selectedTags.includes(t) && (t || '').toLowerCase().includes(query))
+              .slice(0, 8);
+          }
+        }
+      }
+    </script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
+        const liveSocket = new LiveView.LiveSocket("/live", Phoenix.Socket, {
+          params: { _csrf_token: csrfToken }
+        });
+        liveSocket.connect();
+        window.liveSocket = liveSocket;
+      });
+    </script>
+    <style>
+      [x-cloak], [data-cloak] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <%= @inner_content %>
+  </body>
+</html>

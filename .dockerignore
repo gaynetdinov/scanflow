@@ -1,0 +1,13 @@
+.git
+.gitignore
+_build
+deps
+*.log
+.env
+.erlang.cookie
+docker-compose.yml
+README.md
+test
+doc
+.formatter.exs
+assets/node_modules
