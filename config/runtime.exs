@@ -58,6 +58,13 @@ config :scanflow, :paperless_api,
 
 max_pages = String.to_integer(System.get_env("OCR_MAX_PAGES") || "3")
 
+ocr_max_tokens =
+  case System.get_env("OCR_LLM_MAX_TOKENS") do
+    nil -> 500
+    "" -> 500
+    value -> String.to_integer(value)
+  end
+
 visual_llm_context_length =
   String.to_integer(System.get_env("VISUAL_LLM_CONTEXT_LENGTH") || "12000")
 
@@ -65,18 +72,22 @@ visual_llm_reserved_tokens =
   String.to_integer(System.get_env("VISUAL_LLM_RESERVED_TOKENS") || "1500")
 
 visual_llm_endpoint = System.get_env("VISUAL_LLM_ENDPOINT")
-visual_llm_model =
-  System.get_env("VISUAL_LLM_MODEL_NAME") ||
-    System.get_env("OCR_LLM_MODEL_NAME") ||
-    System.get_env("TEXT_LLM_MODEL_NAME")
+visual_llm_model = System.get_env("VISUAL_LLM_MODEL_NAME")
+visual_llm_token = System.get_env("VISUAL_LLM_TOKEN")
 
-visual_llm_token =
-  System.get_env("VISUAL_LLM_TOKEN") ||
-    System.get_env("OCR_LLM_TOKEN") ||
-    System.get_env("TEXT_LLM_TOKEN")
+visual_llm_endpoint_present = is_binary(visual_llm_endpoint) and String.trim(visual_llm_endpoint) != ""
 
-visual_llm_enabled =
-  is_binary(visual_llm_endpoint) and String.trim(visual_llm_endpoint) != ""
+if visual_llm_endpoint_present do
+  unless is_binary(visual_llm_model) and String.trim(visual_llm_model) != "" do
+    raise "VISUAL_LLM_MODEL_NAME is required when VISUAL_LLM_ENDPOINT is set"
+  end
+
+  unless is_binary(visual_llm_token) and String.trim(visual_llm_token) != "" do
+    raise "VISUAL_LLM_TOKEN is required when VISUAL_LLM_ENDPOINT is set"
+  end
+end
+
+visual_llm_enabled = visual_llm_endpoint_present
 
 if visual_llm_enabled do
   # Single VLM mode: one model handles both OCR and suggestions
@@ -95,7 +106,8 @@ if visual_llm_enabled do
     endpoint: visual_llm_endpoint,
     model: visual_llm_model,
     token: visual_llm_token,
-    max_pages: max_pages
+    max_pages: max_pages,
+    max_tokens: ocr_max_tokens
 
   config :scanflow, :text_llm,
     endpoint: visual_llm_endpoint,
@@ -111,7 +123,8 @@ else
     endpoint: System.get_env("OCR_LLM_ENDPOINT"),
     model: System.get_env("OCR_LLM_MODEL_NAME"),
     token: System.get_env("OCR_LLM_TOKEN"),
-    max_pages: max_pages
+    max_pages: max_pages,
+    max_tokens: ocr_max_tokens
 
   config :scanflow, :text_llm,
     endpoint: System.get_env("TEXT_LLM_ENDPOINT"),

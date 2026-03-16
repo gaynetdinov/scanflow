@@ -29,6 +29,7 @@ defmodule Scanflow.Ocr do
   Convert all pages from PDF to images.
   """
   def convert_pdf_pages(pdf_path, on_progress \\ fn _ -> :ok end) do
+    Logger.info("OCR converting PDF to images path=#{pdf_path}")
     results = convert_pages_until_end(pdf_path, 1, [], on_progress)
 
     case results do
@@ -69,6 +70,7 @@ defmodule Scanflow.Ocr do
 
         case Vix.Vips.Image.write_to_file(image, tmp_file) do
           :ok ->
+            log_image_fingerprint(page_num, tmp_file)
             {:ok, tmp_file}
 
           {:error, reason} ->
@@ -87,6 +89,7 @@ defmodule Scanflow.Ocr do
   """
   def process_images(images, on_progress \\ fn _ -> :ok end) when is_list(images) do
     total_pages = length(images)
+    log_duplicate_page_images(images)
 
     # Process each image one by one and collect results
     results =
@@ -142,6 +145,7 @@ defmodule Scanflow.Ocr do
     endpoint = config[:endpoint]
     model = config[:model]
     token = config[:token]
+    max_tokens = config[:max_tokens]
 
     if is_nil(endpoint) or is_nil(model) do
       Logger.warning("OCR LLM not configured, skipping OCR")
@@ -149,11 +153,12 @@ defmodule Scanflow.Ocr do
     else
       # Append /chat/completions to the endpoint URL
       full_url = String.trim_trailing(endpoint, "/") <> "/chat/completions"
-      do_ocr_request(image_path, full_url, model, token, page_num)
+      Logger.info("OCR request page=#{page_num} model=#{model} max_tokens=#{max_tokens}")
+      do_ocr_request(image_path, full_url, model, token, page_num, max_tokens)
     end
   end
 
-  defp do_ocr_request(image_path, endpoint, model, token, page_num) do
+  defp do_ocr_request(image_path, endpoint, model, token, page_num, max_tokens) do
     # Read image and convert to base64
     {:ok, image_data} = File.read(image_path)
     base64_image = Base.encode64(image_data)
@@ -169,7 +174,7 @@ defmodule Scanflow.Ocr do
             %{
               type: "text",
               text:
-                "Extract all visible text exactly as written. Return only raw extracted text. Do not add explanations, prefaces, markdown, or labels like 'Here is extracted text'."
+                "Transcribe the image exactly. Output only the text from the image, preserving line breaks where possible. Do not explain anything. Stop after the transcription ends."
             },
             %{
               type: "image_url",
@@ -180,17 +185,25 @@ defmodule Scanflow.Ocr do
           ]
         }
       ],
-      max_tokens: 8192
+      temperature: 0.0
     }
+    |> maybe_put_max_tokens(max_tokens)
+
+    payload_json = Jason.encode!(payload)
+    maybe_log_raw_payload(page_num, payload_json)
 
     headers = [
       {"Content-Type", "application/json"},
       {"Authorization", "Bearer #{token}"}
     ]
 
-    case Finch.build(:post, endpoint, headers, Jason.encode!(payload))
+    started_at = System.monotonic_time(:millisecond)
+
+    case Finch.build(:post, endpoint, headers, payload_json)
          |> Finch.request(Scanflow.Finch, receive_timeout: 300_000) do
       {:ok, %{status: 200, body: body}} ->
+        elapsed_ms = System.monotonic_time(:millisecond) - started_at
+        log_ocr_response_stats(body, page_num, elapsed_ms)
         parse_ocr_response(body, page_num)
 
       {:ok, %{status: status, body: body}} ->
@@ -239,4 +252,77 @@ defmodule Scanflow.Ocr do
     |> String.replace(~r/^here\s+is\s+(the\s+)?extracted\s+text\s*:?\s*/i, "")
     |> String.trim()
   end
+
+  defp log_image_fingerprint(page_num, image_path) do
+    with {:ok, data} <- File.read(image_path),
+         {:ok, %{size: size}} <- File.stat(image_path) do
+      hash = :crypto.hash(:sha256, data) |> Base.encode16(case: :lower)
+
+      Logger.info(
+        "OCR extracted page=#{page_num} image=#{image_path} bytes=#{size} sha256=#{hash}"
+      )
+    end
+  end
+
+  defp log_duplicate_page_images(images) do
+    hashes =
+      images
+      |> Enum.with_index(1)
+      |> Enum.map(fn {path, page_num} ->
+        case File.read(path) do
+          {:ok, data} -> {page_num, :crypto.hash(:sha256, data) |> Base.encode16(case: :lower)}
+          _ -> {page_num, nil}
+        end
+      end)
+
+    duplicate_groups =
+      hashes
+      |> Enum.reject(fn {_page, hash} -> is_nil(hash) end)
+      |> Enum.group_by(fn {_page, hash} -> hash end, fn {page, _hash} -> page end)
+      |> Enum.filter(fn {_hash, pages} -> length(pages) > 1 end)
+
+    if duplicate_groups != [] do
+      Logger.warning("OCR detected duplicate page images #{inspect(duplicate_groups)}")
+    end
+  end
+
+  defp maybe_log_raw_payload(page_num, payload_json) do
+    payload_bytes = byte_size(payload_json)
+    Logger.info("OCR payload page=#{page_num} bytes=#{payload_bytes}")
+
+    if System.get_env("OCR_LOG_RAW_PAYLOAD") == "true" do
+      path =
+        Path.join(
+          System.tmp_dir!(),
+          "ocr_payload_page_#{page_num}_#{System.unique_integer([:positive])}.json"
+        )
+
+      case File.write(path, payload_json) do
+        :ok -> Logger.info("OCR raw payload page=#{page_num} written=#{path}")
+        {:error, reason} -> Logger.error("OCR raw payload write failed #{inspect(reason)}")
+      end
+    end
+  end
+
+  defp log_ocr_response_stats(body, page_num, elapsed_ms) do
+    case Jason.decode(body) do
+      {:ok, response} ->
+        completion_tokens = get_in(response, ["usage", "completion_tokens"])
+        prompt_tokens = get_in(response, ["usage", "prompt_tokens"])
+        content = get_in(response, ["choices", Access.at(0), "message", "content"]) || ""
+
+        Logger.info(
+          "OCR response page=#{page_num} elapsed_ms=#{elapsed_ms} prompt_tokens=#{inspect(prompt_tokens)} completion_tokens=#{inspect(completion_tokens)} content_chars=#{String.length(content)}"
+        )
+
+      _ ->
+        Logger.info("OCR response page=#{page_num} elapsed_ms=#{elapsed_ms} body_bytes=#{byte_size(body)}")
+    end
+  end
+
+  defp maybe_put_max_tokens(payload, max_tokens) when is_integer(max_tokens) and max_tokens > 0 do
+    Map.put(payload, :max_tokens, max_tokens)
+  end
+
+  defp maybe_put_max_tokens(payload, _max_tokens), do: payload
 end

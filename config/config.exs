@@ -10,7 +10,10 @@ import Config
 # Configures the endpoint
 config :scanflow, ScanflowWeb.Endpoint,
   url: [host: "localhost"],
-  render_errors: [accepts: ~w(html json), layout: false],
+  render_errors: [
+    formats: [html: ScanflowWeb.ErrorHTML, json: ScanflowWeb.ErrorJSON],
+    layout: false
+  ],
   pubsub_server: Scanflow.PubSub,
   live_view: [signing_salt: "Vx0MahZ2"]
 

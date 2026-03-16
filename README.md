@@ -41,6 +41,8 @@ Optional tuning:
 
 - `VISUAL_LLM_CONTEXT_LENGTH` (default: `12000`)
 - `VISUAL_LLM_RESERVED_TOKENS` (default: `1500`)
+- `OCR_LLM_MAX_TOKENS` (default: `500`)
+- `OCR_LOG_RAW_PAYLOAD` (default: `false`, writes full OCR request JSON to `/tmp` for debugging)
 
 ### Batch Pipeline (optional)
 
