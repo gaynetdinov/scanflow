@@ -33,7 +33,10 @@ defmodule Scanflow.Ocr do
 
     case results do
       [] ->
-        {:error, "Failed to convert any pages from PDF"}
+        case convert_single_page(pdf_path, 1) do
+          {:error, reason} -> {:error, "Failed to convert any pages from PDF: #{inspect(reason)}"}
+          _ -> {:error, "Failed to convert any pages from PDF"}
+        end
 
       pages ->
         images = Enum.map(pages, fn {:ok, img} -> img end)

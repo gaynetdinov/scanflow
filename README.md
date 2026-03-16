@@ -84,6 +84,7 @@ docker compose up -d
 The Dockerfile builds and runs Scanflow with Elixir/Erlang available in the container, and also installs runtime tools used by automation/OCR flows:
 
 - `scanimage` (from `sane-utils`)
+- `ghostscript` (required by `pdf2image` for PDF page conversion)
 - `img2pdf`
 - `poppler-utils`
 - `libvips`

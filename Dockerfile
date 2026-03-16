@@ -8,6 +8,7 @@ RUN apt-get update -y && \
       pkg-config \
       libvips-dev \
       poppler-utils \
+      ghostscript \
       img2pdf \
       sane-utils \
       ca-certificates && \
@@ -37,6 +38,7 @@ RUN apt-get update -y && \
       curl \
       libvips \
       poppler-utils \
+      ghostscript \
       img2pdf \
       sane-utils && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
