@@ -229,47 +229,15 @@ defmodule ScanflowWeb.DocumentsLive do
     # Fetch tags if not already loaded
     tags_result = Scanflow.Api.fetch_tags()
 
-    # Fetch documents
-    docs_result =
-      if socket.assigns.search_query == "" do
-        Scanflow.Api.fetch_documents(
-          page: socket.assigns.page,
-          page_size: socket.assigns.page_size
-        )
-      else
-        Scanflow.Api.search_documents(
-          socket.assigns.search_query,
-          page: socket.assigns.page,
-          page_size: socket.assigns.page_size
-        )
-      end
+    docs_result = fetch_documents_for_display(socket)
 
     case {tags_result, docs_result} do
       {{:ok, tags}, {:ok, response}} ->
-        filtered_docs = filter_documents(response.results || [], socket)
-
-        # Use API values if provided, otherwise calculate based on current page
-        previous_page =
-          if response.previous != nil do
-            response.previous
-          else
-            if socket.assigns.page > 1, do: socket.assigns.page - 1, else: nil
-          end
-
-        has_more = response.count > socket.assigns.page * socket.assigns.page_size
-
-        next_page =
-          if response.next != nil do
-            response.next
-          else
-            if has_more, do: socket.assigns.page + 1, else: nil
-          end
-
         assign(socket,
-          documents: filtered_docs,
+          documents: response.results || [],
           total_count: response.count || 0,
-          next_page: next_page,
-          previous_page: previous_page,
+          next_page: response.next,
+          previous_page: response.previous,
           loading: false,
           error: nil,
           tags: tags
@@ -288,10 +256,8 @@ defmodule ScanflowWeb.DocumentsLive do
         # Tags failed but we can still show documents
         case docs_result do
           {:ok, response} ->
-            filtered_docs = filter_documents(response.results || [], socket)
-
             assign(socket,
-              documents: filtered_docs,
+              documents: response.results || [],
               total_count: response.count || 0,
               next_page: response.next,
               previous_page: response.previous,
@@ -357,6 +323,58 @@ defmodule ScanflowWeb.DocumentsLive do
   end
 
   defp normalize_custom_fields(_), do: %{}
+
+  defp fetch_documents_for_display(socket) do
+    with {:ok, response} <- fetch_documents_page(socket, socket.assigns.page) do
+      if socket.assigns.include_processed do
+        {:ok, response}
+      else
+        collect_visible_documents(socket, response, [], response.count || 0)
+      end
+    end
+  end
+
+  defp fetch_documents_page(socket, page) do
+    if socket.assigns.search_query == "" do
+      Scanflow.Api.fetch_documents(page: page, page_size: socket.assigns.page_size)
+    else
+      Scanflow.Api.search_documents(socket.assigns.search_query,
+        page: page,
+        page_size: socket.assigns.page_size
+      )
+    end
+  end
+
+  defp collect_visible_documents(socket, response, acc, total_count) do
+    visible = filter_documents(response.results || [], socket)
+    collected = acc ++ visible
+
+    cond do
+      length(collected) >= socket.assigns.page_size ->
+        {:ok,
+         %{
+           count: total_count,
+           previous: if(socket.assigns.page > 1, do: socket.assigns.page - 1, else: nil),
+           next: response.next,
+           results: Enum.take(collected, socket.assigns.page_size)
+         }}
+
+      is_nil(response.next) ->
+        {:ok,
+         %{
+           count: total_count,
+           previous: if(socket.assigns.page > 1, do: socket.assigns.page - 1, else: nil),
+           next: nil,
+           results: collected
+         }}
+
+      true ->
+        case fetch_documents_page(socket, response.next) do
+          {:ok, next_response} -> collect_visible_documents(socket, next_response, collected, total_count)
+          {:error, error} -> {:error, error}
+        end
+    end
+  end
 
   defp build_path(query, page, include_processed) do
     params = []
