@@ -47,9 +47,9 @@ services:
       # SCAN_DEVICE_ID: "airscan:e0:HP OfficeJet Pro"
       # SCAN_CMD_TEMPLATE: "scanimage -d {device} --resolution 300 {mode_args} --format=png --output-file {output}"
       # SCAN_MODE_MAP: "single:bw,double:color"
-      # AirScan devices commonly expose only Gray and Color. Document intent plus
-      # enhanced contrast/highlight produces a cleaner text-oriented gray scan.
-      # SCAN_MODE_ARGS_MAP: "bw:--mode Gray --scan-intent Document --contrast 50 --highlight 80,color:--mode Color"
+      # AirScan devices commonly expose only Gray and Color. Enhanced
+      # contrast/highlight produces a cleaner text-oriented gray scan.
+      # SCAN_MODE_ARGS_MAP: "bw:--mode Gray --contrast 50 --highlight 80,color:--mode Color"
       # SCAN_FINALIZE_HANDLER: "1_single"
       # SCAN_FINALIZE_HANDLER_DOUBLE: "1_double"
       # PDF_MERGE_CMD_TEMPLATE: "img2pdf {inputs} -o {output}"

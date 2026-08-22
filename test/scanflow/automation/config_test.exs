@@ -19,7 +19,7 @@ defmodule Scanflow.Automation.ConfigTest do
   test "the default black-and-white profile uses AirScan document enhancements" do
     assert Config.mode_args_map() == %{
              "bw" =>
-               "--mode Gray --scan-intent Document --contrast 50 --highlight 80",
+               "--mode Gray --contrast 50 --highlight 80",
              "color" => "--mode Color"
            }
   end
