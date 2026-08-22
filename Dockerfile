@@ -40,6 +40,7 @@ RUN apt-get update -y && \
       poppler-utils \
       ghostscript \
       img2pdf \
+      sane-airscan \
       sane-utils && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -47,6 +48,8 @@ WORKDIR /app
 
 RUN groupadd --gid 1000 appuser && \
     useradd --uid 1000 --gid 1000 --create-home --shell /usr/sbin/nologin appuser
+
+COPY airscan.conf /etc/sane.d/airscan.conf
 
 COPY --from=build --chown=appuser:appuser /app/_build/prod/rel/scanflow ./
 

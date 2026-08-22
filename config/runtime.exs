@@ -60,8 +60,8 @@ max_pages = String.to_integer(System.get_env("OCR_MAX_PAGES") || "3")
 
 ocr_max_tokens =
   case System.get_env("OCR_LLM_MAX_TOKENS") do
-    nil -> 500
-    "" -> 500
+    nil -> 1500
+    "" -> 1500
     value -> String.to_integer(value)
   end
 
