@@ -16,12 +16,19 @@ RUN apt-get -o Acquire::Retries=5 update -y && \
 
 WORKDIR /app
 
+ENV HEX_HTTP_CONCURRENCY=1
+ENV HEX_HTTP_TIMEOUT=120
+
 RUN mix local.hex --force && mix local.rebar --force
 
 ENV MIX_ENV=prod
 
 COPY mix.exs mix.lock ./
-RUN mix deps.get --only prod
+RUN for attempt in 1 2 3; do \
+      mix deps.get --only prod && exit 0; \
+      echo "mix deps.get failed (attempt ${attempt}/3), retrying"; \
+    done; \
+    exit 1
 
 COPY config ./config
 COPY lib ./lib
@@ -46,8 +53,8 @@ RUN apt-get -o Acquire::Retries=5 update -y && \
 
 WORKDIR /app
 
-RUN groupadd --gid 1000 appuser && \
-    useradd --uid 1000 --gid 1000 --create-home --shell /usr/sbin/nologin appuser
+RUN groupadd -r appuser && \
+    useradd -r -g appuser -m -s /usr/sbin/nologin appuser
 
 COPY airscan.conf /etc/sane.d/airscan.conf
 
