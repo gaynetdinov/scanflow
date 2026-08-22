@@ -1,16 +1,16 @@
-FROM elixir:1.19-slim AS build
+# Pin the toolchain and OS so an upstream floating tag cannot unexpectedly move
+# the build to a new Debian release. Ubuntu Noble is supported through April 2029.
+ARG ELIXIR_IMAGE=hexpm/elixir:1.19.5-erlang-28.5.0.5-ubuntu-noble-20260810
 
-# Build-time dependencies for Elixir, Erlang NIFs, and PDF/image tooling.
-RUN apt-get update -y && \
-    apt-get install -y --no-install-recommends \
+FROM ${ELIXIR_IMAGE} AS build
+
+# Build-time dependencies for Elixir and native extensions.
+RUN apt-get -o Acquire::Retries=5 update -y && \
+    apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
       build-essential \
       git \
       pkg-config \
       libvips-dev \
-      poppler-utils \
-      ghostscript \
-      img2pdf \
-      sane-utils \
       ca-certificates && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -30,13 +30,13 @@ COPY priv ./priv
 RUN mix deps.compile && mix compile && mix release
 
 # Runtime image intentionally keeps Elixir/Erlang installed.
-FROM elixir:1.19-slim AS app
+FROM ${ELIXIR_IMAGE} AS app
 
-RUN apt-get update -y && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get -o Acquire::Retries=5 update -y && \
+    apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
       ca-certificates \
       curl \
-      libvips \
+      libvips42t64 \
       poppler-utils \
       ghostscript \
       img2pdf \
