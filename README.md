@@ -55,7 +55,12 @@ Optional tuning:
 - `SCAN_DEVICE_ID`
 - `SCAN_CMD_TEMPLATE` (default uses `scanimage`)
 - `SCAN_MODE_MAP` (default: `single:bw,double:color`)
-- `SCAN_MODE_ARGS_MAP` (default: `bw:--mode Gray,color:--mode Color`)
+- `SCAN_MODE_ARGS_MAP` (default: `bw:--mode Gray --scan-intent Document --contrast 50 --highlight 80,color:--mode Color`)
+  - The default black-and-white profile targets AirScan devices that expose only
+    `Gray` and `Color`. Document intent, increased contrast, and a lower highlight
+    reduce paper texture and light background shading in text scans.
+  - Scanner options are device-specific. Check supported values with
+    `scanimage -d '<device>' --all-options`, then override this map if necessary.
 - `SCAN_FINALIZE_HANDLER` (default: `1_single`)
 - `SCAN_FINALIZE_HANDLER_DOUBLE` (default inferred from single handler)
 - `PDF_MERGE_CMD_TEMPLATE` (default uses `img2pdf`)

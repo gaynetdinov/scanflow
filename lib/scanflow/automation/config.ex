@@ -40,7 +40,11 @@ defmodule Scanflow.Automation.Config do
 
   def mode_args_map do
     parse_map(
-      Keyword.get(scan_config(), :scan_mode_args_map, "bw:--mode Gray,color:--mode Color")
+      Keyword.get(
+        scan_config(),
+        :scan_mode_args_map,
+        "bw:--mode Gray --scan-intent Document --contrast 50 --highlight 80,color:--mode Color"
+      )
     )
   end
 

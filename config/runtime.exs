@@ -143,7 +143,9 @@ config :scanflow, :automation,
     System.get_env("SCAN_CMD_TEMPLATE") ||
       "scanimage -d {device} --resolution 300 {mode_args} --format=png --output-file {output}",
   scan_mode_map: System.get_env("SCAN_MODE_MAP") || "single:bw,double:color",
-  scan_mode_args_map: System.get_env("SCAN_MODE_ARGS_MAP") || "bw:--mode Gray,color:--mode Color",
+  scan_mode_args_map:
+    System.get_env("SCAN_MODE_ARGS_MAP") ||
+      "bw:--mode Gray --scan-intent Document --contrast 50 --highlight 80,color:--mode Color",
   finalize_handler: System.get_env("SCAN_FINALIZE_HANDLER") || "1_single",
   finalize_handler_double: System.get_env("SCAN_FINALIZE_HANDLER_DOUBLE"),
   pdf_merge_cmd_template:
