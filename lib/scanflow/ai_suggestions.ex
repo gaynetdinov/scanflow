@@ -40,6 +40,10 @@ defmodule Scanflow.AiSuggestions do
         }
       ],
       max_tokens: 500,
+      reasoning_effort: "none",
+      chat_template_kwargs: %{
+        enable_thinking: false
+      },
       temperature: 0.3
     }
 

@@ -185,6 +185,12 @@ defmodule Scanflow.Ocr do
           ]
         }
       ],
+      # llama.cpp supports per-request reasoning control. Gemma 4 uses the
+      # template argument while current llama.cpp also accepts reasoning_effort.
+      reasoning_effort: "none",
+      chat_template_kwargs: %{
+        enable_thinking: false
+      },
       temperature: 0.0
     }
     |> maybe_put_max_tokens(max_tokens)

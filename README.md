@@ -44,6 +44,10 @@ Optional tuning:
 - `OCR_LLM_MAX_TOKENS` (default: `500`)
 - `OCR_LOG_RAW_PAYLOAD` (default: `false`, writes full OCR request JSON to `/tmp` for debugging)
 
+LLM requests disable reasoning client-side for llama.cpp by sending both
+`reasoning_effort: "none"` and `chat_template_kwargs.enable_thinking: false`.
+This applies to OCR as well as title and tag suggestions.
+
 ### Batch Pipeline (optional)
 
 - `BATCH_PREP_MAX_CONCURRENCY` (default: `4`)
